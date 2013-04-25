@@ -1,0 +1,19 @@
+<resources>
+
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- Strings related to Settings -->
+
+
+    <!-- Example General settings -->
+    <string name="pref_header_general">General</string>
+    <string name="pref_title_use_dialog_theme">Use simple dialog theme</string>
+    <string name="pref_description_use_dialog_theme">Uses a dialog based theme for the app instead of a fullscreen activity, this will also disable ads</string>
+
+    <!-- Example settings for Data & Sync -->
+
+    <!-- Example settings for Notifications -->
+    <string name="pref_title_enable_ads">Enable ads</string>
+    <string name="pref_description_enable_ads">Having ads enabled supports me as a developer, you can disable them if you wish</string>
+
+</resources>

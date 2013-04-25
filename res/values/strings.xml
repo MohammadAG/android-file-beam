@@ -4,6 +4,8 @@
     <string name="app_name">Beam File</string>
     <string name="menu_settings">Settings</string>
     <string name="beaming_file">Beaming file using Android Beam™</string>
+    <string name="beaming_files">Beaming files using Android Beam™</string>
+    <string name="beaming_text">Beaming text using Android Beam™</string>
     <string name="touch_devices">Touch the two devices to continue…</string>
     <string name="file_sent">File is being beamed, press back to exit</string>
     <string name="menu_about">About</string>
@@ -16,5 +18,7 @@
     <string name="detail_unknown_size">Unknown size</string>
     <string name="detail_unknown_type">Unknown type</string>
     <string name="content_description_image">Image depicting the type of the file that is being beamed</string>
+    <string name="multiple_files">Multiple files</string>
+    <string name="multiple_file_types">Multiple file types</string>
 
 </resources>

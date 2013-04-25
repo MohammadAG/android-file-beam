@@ -22,8 +22,12 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import com.google.ads.AdRequest;
+import com.google.ads.AdView;
 
 import android.net.Uri;
 import android.nfc.NdefMessage;
@@ -32,24 +36,44 @@ import android.nfc.NfcAdapter;
 import android.nfc.NfcAdapter.OnNdefPushCompleteCallback;
 import android.nfc.NfcEvent;
 import android.os.Bundle;
-import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.Window;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.content.pm.PackageManager;
 
 public class MainActivity extends Activity implements OnNdefPushCompleteCallback {
+	
+	public static long getFileSize(String pathToFile) {
+    	File f = new File(pathToFile);
+    	return f.length();
+	}
+	
+	public static String getMimeType(String url)
+	{
+		if (url.endsWith("TiBkp"))
+			return "Titanium Backup file";
+	    String type = null;
+	    String extension = MimeTypeMap.getFileExtensionFromUrl(url);
+	    if (extension != null) {
+	        MimeTypeMap mime = MimeTypeMap.getSingleton();
+	        type = mime.getMimeTypeFromExtension(extension);
+	    }
+	    return type;
+	}
 	
 	public static String humanReadableByteCount(long bytes, boolean si) {
 	    int unit = si ? 1024 : 1000;
@@ -57,6 +81,10 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
 	    int exp = (int) (Math.log(bytes) / Math.log(unit));
 	    String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
 	    return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+	}
+	
+	public static String getHumanReadableFileSize(String pathToFile) {
+		return humanReadableByteCount(getFileSize(pathToFile), true);
 	}
 	
 	public String getFileNameByUri(Uri uri)
@@ -145,6 +173,32 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
 		statusView.setText(text);
 	}
 	
+	private void setFileSizeText(String fileSizeText) {
+    	TextView sizeView = (TextView)findViewById(R.id.fileSizeTextView);
+    	sizeView.setText(fileSizeText);
+	}
+	
+	private void setFileNameText(String fileNameText) {
+    	TextView view = (TextView)findViewById(R.id.fileNameTextView);
+    	view.setText(fileNameText);
+	}
+	
+	private void setContentTypeText(String contentTypeText) {
+    	TextView contentTypeView = (TextView)findViewById(R.id.contentTypeTextView);
+    	contentTypeView.setText(contentTypeText);
+	}
+	
+	private void setTextForAllFields(String sizeText, String fileNameText, String contentTypeText) {
+		setFileSizeText(sizeText);
+		setFileNameText(fileNameText);
+		setContentTypeText(contentTypeText);
+	}
+	
+	private void setBeamingText(String text) {
+		TextView beamingView = (TextView)findViewById(R.id.beamingFileTextView);
+		beamingView.setText(text);
+	}
+	
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
@@ -152,6 +206,10 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
             case R.id.menu_about:
                 showAbout();
                 return true;
+            case R.id.menu_settings:
+            	Intent settingsIntent = new Intent(getApplicationContext(), SettingsActivity.class);
+            	startActivity(settingsIntent);
+            	return true;
             case R.id.menu_donate:
     			Intent intent = new Intent(Intent.ACTION_VIEW, 
     					Uri.parse("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=QB4BLETCSBGNS"));
@@ -164,8 +222,22 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isDialogModeEnabled = preferences.getBoolean("use_dialog_theme", false);
+        if (isDialogModeEnabled)
+        	setTheme(android.R.style.Theme_Holo_Dialog);
+        else
+        	setTheme(android.R.style.Theme_Holo);
+    	
         super.onCreate(savedInstanceState);
+        
+        if (isDialogModeEnabled)
+        	requestWindowFeature(Window.FEATURE_NO_TITLE);
+        
         setContentView(R.layout.activity_main);
+
+        boolean enableAds = preferences.getBoolean("enable_ads", true);
+        toggleAds((enableAds && !isDialogModeEnabled));
         
         Intent intent = getIntent();
         Bundle extras = intent.getExtras();
@@ -189,34 +261,28 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
             	Uri fileUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
             	
             	Log.d("FileBeam", fileUri.toString());
-            	
-            	File f = new File(fileUri.getPath());
-            	long size = f.length();
-            	
-            	TextView sizeView = (TextView)findViewById(R.id.fileSizeTextView);
-            	sizeView.setText(humanReadableByteCount(size, true));
-            	
-            	TextView view = (TextView)findViewById(R.id.fileNameTextView);
-            	view.setText(getFileNameByUri(fileUri));
-            	
-            	TextView contentTypeView = (TextView)findViewById(R.id.contentTypeTextView);
-            	contentTypeView.setText(intent.getType());
             		
+            	setTextForAllFields(getHumanReadableFileSize(fileUri.getPath()),
+            			getFileNameByUri(fileUri), intent.getType());
+            	
             	final Drawable icon = getImageForFile(fileUri, intent);
             	if (icon != null) {
             		ImageView imageView =  (ImageView)findViewById(R.id.defaultIconView);
             		imageView.setImageDrawable(icon);
             	}
             	
-
                 nfcAdapter.setBeamPushUris(new Uri[] {fileUri}, this);
                 nfcAdapter.setOnNdefPushCompleteCallback(this, this); 
             } else {
                 String text = (String) extras.getCharSequence(Intent.EXTRA_TEXT);
                 NdefMessage message;
                 
+                setTextForAllFields("", text, "plain/text");
+                setBeamingText(getString(R.string.beaming_text));
+                
                 try {
-                  URL url = new URL(text);
+                  @SuppressWarnings("unused")
+				URL url = new URL(text);
                   
                   NdefRecord uriRecord = new NdefRecord(
                 		    NdefRecord.TNF_ABSOLUTE_URI ,
@@ -233,6 +299,37 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
                 nfcAdapter.setNdefPushMessage(message, this);
                 nfcAdapter.setOnNdefPushCompleteCallback(this, this); 
             }
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+        	setBeamingText(getString(R.string.beaming_files));
+        	ArrayList<Uri> fileUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+    		
+        	long size = 0;
+        	for (Uri uri: fileUris) {
+        		Log.d("FileBeam", uri.toString());
+        		size = size + getFileSize(uri.getPath());
+        	}
+        	
+        	Uri[] uriList = fileUris.toArray(new Uri[0]);
+        	
+        	String fileNameText;
+        	String fileSizeText;
+        	String fileTypeText;
+        	
+        	if (uriList.length == 1) {
+        		Uri fileUri = uriList[0];
+        		fileNameText = getFileNameByUri(fileUri);
+        		fileSizeText = getHumanReadableFileSize(fileUri.getPath());
+        		fileTypeText = getMimeType(fileUri.getPath());
+        	} else {
+        		fileNameText = getString(R.string.multiple_files);
+        		fileSizeText = humanReadableByteCount(size, true);
+        		fileTypeText = getString(R.string.multiple_file_types);
+        	}
+        	
+        	setTextForAllFields(fileSizeText, fileNameText, fileTypeText);
+        	
+            nfcAdapter.setBeamPushUris(uriList, this);
+            nfcAdapter.setOnNdefPushCompleteCallback(this, this); 
         }
     }
 
@@ -252,4 +349,35 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
 		});
 	}
     
+	private void toggleAds(boolean enable) {
+		if (enable) {
+			showAd();
+		} else {
+			hideAd();
+		}
+	}
+	 
+	private void showAd() {
+		final AdView adLayout = (AdView) findViewById(R.id.adView);
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				adLayout.setEnabled(true);
+				adLayout.setVisibility(View.VISIBLE);
+				adLayout.loadAd(new AdRequest());
+			}
+		});
+	}
+	 
+	 
+	private void hideAd() {
+		final AdView adLayout = (AdView) findViewById(R.id.adView);
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				adLayout.setEnabled(false);
+				adLayout.setVisibility(View.GONE);
+			}
+		});
+	}
 }
