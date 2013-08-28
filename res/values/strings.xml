@@ -20,5 +20,6 @@
     <string name="content_description_image">Image depicting the type of the file that is being beamed</string>
     <string name="multiple_files">Multiple files</string>
     <string name="multiple_file_types">Multiple file types</string>
+    <string name="unable_to_get_filename">Failed to get filename</string>
 
 </resources>

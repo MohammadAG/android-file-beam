@@ -38,6 +38,7 @@ import android.nfc.NfcEvent;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -75,6 +76,7 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
 	    return type;
 	}
 	
+	@SuppressLint("DefaultLocale")
 	public static String humanReadableByteCount(long bytes, boolean si) {
 	    int unit = si ? 1024 : 1000;
 	    if (bytes < unit) return bytes + " B";
@@ -89,14 +91,16 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
 	
 	public String getFileNameByUri(Uri uri)
 	{
-	    String fileName = uri.toString(); //default fileName
+	    String fileName = uri.toString();
 	    Uri filePathUri = uri;
 	    if (uri.getScheme().toString().compareTo("content")==0)
 	    {      
 	    	Cursor cursor = getApplicationContext().getContentResolver().query(uri, null, null, null, null);
 	        if (cursor.moveToFirst())
 	        {
-	            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);//Instead of "MediaStore.Images.Media.DATA" can be used "_data"
+	        	int column_index = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+	        	if (column_index == -1)
+	        		return getString(R.string.unable_to_get_filename);
 	            filePathUri = Uri.parse(cursor.getString(column_index));
 	            fileName = filePathUri.getLastPathSegment().toString();
 	        }
@@ -129,14 +133,8 @@ public class MainActivity extends Activity implements OnNdefPushCompleteCallback
 	
 	public void showAbout() {
 		AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-
-        // Setting Dialog Title
         alertDialog.setTitle(R.string.about_dialog_title);
- 
-        // Setting Dialog Message
         alertDialog.setMessage(R.string.about_text);
- 
-        // Showing Alert Message
         alertDialog.show();
 	}
 	
