@@ -21,5 +21,7 @@
     <string name="multiple_files">Multiple files</string>
     <string name="multiple_file_types">Multiple file types</string>
     <string name="unable_to_get_filename">Failed to get filename</string>
+    <string name="settings_showcase_title">You\'ve switched to the dialog theme</string>
+    <string name="settings_showcase_detail">To access the overflow menu in the dialog theme, tap and hold this icon. Try it now!</string>
 
 </resources>
